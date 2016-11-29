@@ -2,6 +2,7 @@ import os, datetime
 import numpy as np
 import tensorflow as tf
 from DataLoader import *
+import requests
 
 # Dataset Parameters
 batch_size = 200
@@ -88,8 +89,8 @@ def alexnet(x, keep_dropout):
 # Construct dataloader
 opt_data_train = {
     'data_h5': 'miniplaces_256_train.h5',
-    #'data_root': 'YOURPATH/images/',   # MODIFY PATH ACCORDINGLY
-    #'data_list': 'YOURPATH/train.txt', # MODIFY PATH ACCORDINGLY
+    'data_root': 'images/',   # MODIFY PATH ACCORDINGLY
+    'data_list': 'development_kit/train.txt', # MODIFY PATH ACCORDINGLY
     'load_size': load_size,
     'fine_size': fine_size,
     'data_mean': data_mean,
@@ -97,8 +98,8 @@ opt_data_train = {
     }
 opt_data_val = {
     'data_h5': 'miniplaces_256_val.h5',
-    #'data_root': 'YOURPATH/images/',   # MODIFY PATH ACCORDINGLY
-    #'data_list': 'YOURPATH/val.txt',   # MODIFY PATH ACCORDINGLY
+    'data_root': 'images/',   # MODIFY PATH ACCORDINGLY
+    'data_list': 'development_kit/val.txt',   # MODIFY PATH ACCORDINGLY
     'load_size': load_size,
     'fine_size': fine_size,
     'data_mean': data_mean,
@@ -198,3 +199,4 @@ with tf.Session() as sess:
     acc1_total /= num_batch
     acc5_total /= num_batch
     print 'Evaluation Finished! Accuracy Top1 = ' + "{:.4f}".format(acc1_total) + ", Top5 = " + "{:.4f}".format(acc5_total)
+    requests.get('http://dsukhin.scripts.mit.edu/clear.php?from=miniplaces-done')
