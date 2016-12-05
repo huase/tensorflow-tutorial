@@ -59,5 +59,14 @@ if __name__=='__main__':
     		'data_list': 'development_kit/data/val.txt'		# MODIFY PATH ACCORDINGLY
 	}
 
+	params_test = {
+		'name': 'miniplaces',
+		'split': 'test',
+		'img_resize': 256,
+		'data_root': 'images/',	# MODIFY PATH ACCORDINGLY
+    		'data_list': 'development_kit/data/test.txt'		# MODIFY PATH ACCORDINGLY
+	}
+	
 	createH5(params_train)
 	createH5(params_val)
+	createH5(params_test)

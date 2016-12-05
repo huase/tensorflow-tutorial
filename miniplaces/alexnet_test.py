@@ -2,7 +2,8 @@ import os, datetime
 import numpy as np
 import tensorflow as tf
 from DataLoader import *
-import requests
+import heapq
+import itertools
 
 # Dataset Parameters
 batch_size = 80#200
@@ -18,7 +19,7 @@ training_iters = 100000
 step_display = 50
 step_save = 10000
 path_save = 'alexnet'
-start_from = ''
+start_from = 'alexnet-30000'
 
 def alexnet(x, keep_dropout):
     weights = {
@@ -106,10 +107,24 @@ opt_data_val = {
     'randomize': False
     }
 
+opt_data_test = {
+    'data_h5': 'miniplaces_256_test.h5',
+    'data_root': 'images/',   # MODIFY PATH ACCORDINGLY
+    'data_list': 'development_kit/data/test.txt',   # MODIFY PATH ACCORDINGLY
+    'load_size': load_size,
+    'fine_size': fine_size,
+    'data_mean': data_mean,
+    'randomize': False
+    }
+
+
 # loader_train = DataLoaderDisk(**opt_data_train)
 # loader_val = DataLoaderDisk(**opt_data_val)
+'''
 loader_train = DataLoaderH5(**opt_data_train)
 loader_val = DataLoaderH5(**opt_data_val)
+'''
+loader_test = DataLoaderH5(**opt_data_test)
 
 # tf Graph input
 x = tf.placeholder(tf.float32, [None, fine_size, fine_size, c])
@@ -137,7 +152,12 @@ saver = tf.train.Saver()
 #writer = tf.train.SummaryWriter('.', graph=tf.get_default_graph())
 
 # Launch the graph
-with tf.Session() as sess:
+
+config = tf.ConfigProto(
+        device_count = {'GPU': 0}
+    )
+
+with tf.Session(config=config) as sess:
     # Initialization
     if len(start_from)>1:
         saver.restore(sess, start_from)
@@ -146,57 +166,19 @@ with tf.Session() as sess:
     
     step = 0
 
-    while step < training_iters:
-        # Load a batch of training data
-        images_batch, labels_batch = loader_train.next_batch(batch_size)
-        
-        if step % step_display == 0:
-            print '[%s]:' %(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    # Evaluate
+    print 'Evaluation...'
+    num_batch = loader_test.size()/batch_size
+    loader_test.reset()
+    
+    with open("development_kit/data/test.txt","r") as p:
+        dat = p.readlines()
+        dat = [d.split(" ")[0] for d in dat]
 
-            # Calculate batch loss and accuracy on training set
-            l, acc1, acc5 = sess.run([loss, accuracy1, accuracy5], feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1.}) 
-            print "-Iter " + str(step) + ", Training Loss= " + \
-            "{:.4f}".format(l) + ", Accuracy Top1 = " + \
-            "{:.2f}".format(acc1) + ", Top5 = " + \
-            "{:.2f}".format(acc5)
-
-            # Calculate batch loss and accuracy on validation set
-            images_batch_val, labels_batch_val = loader_val.next_batch(batch_size)    
-            l, acc1, acc5 = sess.run([loss, accuracy1, accuracy5], feed_dict={x: images_batch_val, y: labels_batch_val, keep_dropout: 1.}) 
-            print "-Iter " + str(step) + ", Validation Loss= " + \
-            "{:.4f}".format(l) + ", Accuracy Top1 = " + \
-            "{:.2f}".format(acc1) + ", Top5 = " + \
-            "{:.2f}".format(acc5)
-        
-        # Run optimization op (backprop)
-        sess.run(train_optimizer, feed_dict={x: images_batch, y: labels_batch, keep_dropout: dropout})
-        
-        step += 1
-        
-        # Save model
-        if step % step_save == 0:
-            saver.save(sess, path_save, global_step=step)
-            print "Model saved at Iter %d !" %(step)
-        
-    print "Optimization Finished!"
-
-
-    # Evaluate on the whole validation set
-    print 'Evaludation on the whole validation set...'
-    num_batch = loader_val.size()/batch_size
-    acc1_total = 0.
-    acc5_total = 0.
-    loader_val.reset()
-    for i in range(num_batch):
-        images_batch, labels_batch = loader_val.next_batch(batch_size)    
-        acc1, acc5 = sess.run([accuracy1, accuracy5], feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1.})
-        acc1_total += acc1
-        acc5_total += acc5
-        print "Validation Accuracy Top1 = " + \
-            "{:.2f}".format(acc1) + ", Top5 = " + \
-            "{:.2f}".format(acc5)
-
-    acc1_total /= num_batch
-    acc5_total /= num_batch
-    print 'Evaluation Finished! Accuracy Top1 = ' + "{:.4f}".format(acc1_total) + ", Top5 = " + "{:.4f}".format(acc5_total)
-    requests.get('http://dsukhin.scripts.mit.edu/clear.php?from=miniplaces-done')
+    with open("test_results_"+start_from,"w") as f:
+        for i in range(num_batch):
+       	    images_batch, labels_batch = loader_test.next_batch(batch_size)    
+            ypred = sess.run([logits], feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1.})
+            for xp,yp in zip(dat[batch_size*i:batch_size*(i+1)], ypred[0]):
+                f.write(xp+" "+" ".join([str(k[1]) for k in heapq.nlargest(5,zip(yp,itertools.count()))])+"\n")
+            print "batch",i,"of",num_batch,"done"
