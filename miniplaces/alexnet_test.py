@@ -117,14 +117,17 @@ opt_data_test = {
     'randomize': False
     }
 
-
 # loader_train = DataLoaderDisk(**opt_data_train)
 # loader_val = DataLoaderDisk(**opt_data_val)
-'''
-loader_train = DataLoaderH5(**opt_data_train)
-loader_val = DataLoaderH5(**opt_data_val)
-'''
-loader_test = DataLoaderH5(**opt_data_test)
+
+#loader_train = DataLoaderH5(**opt_data_train)
+#loader_val = DataLoaderH5(**opt_data_val)
+#loader_test = DataLoaderH5(**opt_data_test)
+
+datatype = "test"
+opt_data = opt_data_test
+loader = DataLoaderH5(**opt_data)
+
 
 # tf Graph input
 x = tf.placeholder(tf.float32, [None, fine_size, fine_size, c])
@@ -168,16 +171,16 @@ with tf.Session(config=config) as sess:
 
     # Evaluate
     print 'Evaluation...'
-    num_batch = loader_test.size()/batch_size
-    loader_test.reset()
+    num_batch = loader.size()/batch_size
+    loader.reset()
     
-    with open("development_kit/data/test.txt","r") as p:
+    with open(opt_data["data_list"],"r") as p:
         dat = p.readlines()
         dat = [d.split(" ")[0] for d in dat]
 
-    with open("test_results_"+start_from,"w") as f:
+    with open(datatype+"_results_"+start_from,"w") as f:
         for i in range(num_batch):
-       	    images_batch, labels_batch = loader_test.next_batch(batch_size)    
+       	    images_batch, labels_batch = loader.next_batch(batch_size)    
             ypred = sess.run([logits], feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1.})
             for xp,yp in zip(dat[batch_size*i:batch_size*(i+1)], ypred[0]):
                 f.write(xp+" "+" ".join([str(k[1]) for k in heapq.nlargest(5,zip(yp,itertools.count()))])+"\n")
