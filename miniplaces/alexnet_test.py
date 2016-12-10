@@ -19,7 +19,7 @@ training_iters = 100000
 step_display = 50
 step_save = 10000
 path_save = 'alexnet'
-start_from = 'alexnet-30000'
+start_from = 'alexnet-90000'
 
 def alexnet(x, keep_dropout):
     weights = {
@@ -110,7 +110,7 @@ opt_data_val = {
 opt_data_test = {
     'data_h5': 'miniplaces_256_test.h5',
     'data_root': 'images/',   # MODIFY PATH ACCORDINGLY
-    'data_list': 'development_kit/data/test.txt',   # MODIFY PATH ACCORDINGLY
+    'data_list': 'development_kit/data/test_new.txt',   # MODIFY PATH ACCORDINGLY
     'load_size': load_size,
     'fine_size': fine_size,
     'data_mean': data_mean,
@@ -160,6 +160,10 @@ config = tf.ConfigProto(
         device_count = {'GPU': 0}
     )
 
+def make_filename(n):
+    n=str(int(n))
+    return datatype+"/"+"".join(["0"]*(8-len(n)))+n+".jpg"
+
 with tf.Session(config=config) as sess:
     # Initialization
     if len(start_from)>1:
@@ -174,14 +178,10 @@ with tf.Session(config=config) as sess:
     num_batch = loader.size()/batch_size
     loader.reset()
     
-    with open(opt_data["data_list"],"r") as p:
-        dat = p.readlines()
-        dat = [d.split(" ")[0] for d in dat]
-
     with open(datatype+"_results_"+start_from,"w") as f:
         for i in range(num_batch):
        	    images_batch, labels_batch = loader.next_batch(batch_size)    
-            ypred = sess.run([logits], feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1.})
-            for xp,yp in zip(dat[batch_size*i:batch_size*(i+1)], ypred[0]):
-                f.write(xp+" "+" ".join([str(k[1]) for k in heapq.nlargest(5,zip(yp,itertools.count()))])+"\n")
+            ypred = sess.run(logits, feed_dict={x: images_batch, keep_dropout: 1.})
+            for xp,yp in zip(labels_batch, ypred):
+                f.write(make_filename(xp)+" "+" ".join([str(k[1]) for k in heapq.nlargest(5,zip(yp,itertools.count()))])+"\n")
             print "batch",i,"of",num_batch,"done"

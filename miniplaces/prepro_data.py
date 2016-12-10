@@ -18,7 +18,7 @@ def createH5(params):
 	        list_im.append(os.path.join(params['data_root'], path))
 	        list_lab.append(int(lab))
 	list_im = np.array(list_im, np.object)
-	list_lab = np.array(list_lab, np.uint8)
+	list_lab = np.array(list_lab, np.uint16)
 	N = list_im.shape[0]
 	print('# Images found:'), N
 	
@@ -28,7 +28,7 @@ def createH5(params):
 	list_lab = list_lab[perm]
 
 	im_set = f_h5.create_dataset("images", (N,params['img_resize'],params['img_resize'],3), dtype='uint8') # space for resized images
-	f_h5.create_dataset("labels", dtype='uint8', data=list_lab)
+	f_h5.create_dataset("labels", dtype='uint16', data=list_lab)
 
 	for i in range(N):
 		image = scipy.misc.imread(list_im[i])
@@ -64,9 +64,9 @@ if __name__=='__main__':
 		'split': 'test',
 		'img_resize': 256,
 		'data_root': 'images/',	# MODIFY PATH ACCORDINGLY
-    		'data_list': 'development_kit/data/test.txt'		# MODIFY PATH ACCORDINGLY
+    		'data_list': 'development_kit/data/test_new.txt'		# MODIFY PATH ACCORDINGLY
 	}
 	
-	createH5(params_train)
-	createH5(params_val)
+	#createH5(params_train)
+	#createH5(params_val)
 	createH5(params_test)
