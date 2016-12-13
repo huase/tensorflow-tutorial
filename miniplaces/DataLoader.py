@@ -16,8 +16,10 @@ class DataLoaderH5(object):
         f = h5py.File(kwargs['data_h5'], "r")
         self.im_set = f['images']
         self.lab_set = f['labels']
-
-        self.num = self.im_set.shape[0]
+        #self.tag_set = f['tags']
+        
+	self.num = self.im_set.shape[0]
+        #assert self.im_set.shape[0]==self.tag_set.shape[0], '#images and #tags do not match!'
         assert self.im_set.shape[0]==self.lab_set.shape[0], '#images and #labels do not match!'
         assert self.im_set.shape[1]==self.load_size, 'Image size error!'
         assert self.im_set.shape[2]==self.load_size, 'Image size error!'
@@ -27,6 +29,7 @@ class DataLoaderH5(object):
         
     def next_batch(self, batch_size):
         labels_batch = np.zeros(batch_size)
+	#tags_batch = np.zeros((batch_size, self.class_size))
         images_batch = np.zeros((batch_size, self.fine_size, self.fine_size, 3)) 
         
         for i in range(batch_size):
@@ -44,19 +47,20 @@ class DataLoaderH5(object):
 
             images_batch[i, ...] = image[offset_h:offset_h+self.fine_size, offset_w:offset_w+self.fine_size, :]
             labels_batch[i, ...] = self.lab_set[self._idx]
+            #tags_batch[i, ...] = self.tag_set[self._idx]
             
             self._idx += 1
             if self._idx == self.num:
                 self._idx = 0
         
-        return images_batch, labels_batch
+        return images_batch, labels_batch#, tags_batch
     
     def size(self):
         return self.num
 
     def reset(self):
         self._idx = 0
-
+'''
 # Loading data from disk
 class DataLoaderDisk(object):
     def __init__(self, **kwargs):
@@ -77,12 +81,13 @@ class DataLoaderDisk(object):
                 self.list_lab.append(int(lab))
         self.list_im = np.array(self.list_im, np.object)
         self.list_lab = np.array(self.list_lab, np.int64)
+        self.list_tag = np.array(self.list_tag, np.object)
         self.num = self.list_im.shape[0]
         print('# Images found:'), self.num
 
         # permutation
         perm = np.random.permutation(self.num) 
-        self.list_im = self.list_im[perm]
+       	self.list_im = self.list_im[perm]
         self.list_lab = self.list_lab[perm]
 
         self._idx = 0
@@ -90,7 +95,8 @@ class DataLoaderDisk(object):
     def next_batch(self, batch_size):
         images_batch = np.zeros((batch_size, self.fine_size, self.fine_size, 3)) 
         labels_batch = np.zeros(batch_size)
-        for i in range(batch_size):
+        tags_batch = np.zeros((batch_size,self.class_size))
+	for i in range(batch_size):
             image = scipy.misc.imread(self.list_im[self._idx])
             image = scipy.misc.imresize(image, (self.load_size, self.load_size))
             image = image.astype(np.float32)/255.
@@ -107,6 +113,7 @@ class DataLoaderDisk(object):
 
             images_batch[i, ...] =  image[offset_h:offset_h+self.fine_size, offset_w:offset_w+self.fine_size, :]
             labels_batch[i, ...] = self.list_lab[self._idx]
+            tagss_batch[i, ...] = self.list_tag[self._idx]
             
             self._idx += 1
             if self._idx == self.num:
@@ -119,3 +126,7 @@ class DataLoaderDisk(object):
 
     def reset(self):
         self._idx = 0
+
+'''
+
+
